@@ -135,14 +135,7 @@ def key_of(row):
 
 
 def main():
-    token = os.environ.get("META_TOKEN", "").strip()
-    if not token:
-        sys.exit("META_TOKEN が設定されていません（GitHub の Settings → Secrets に保存してください）")
     mode = os.environ.get("MODE", "post")
-
-    page_token, ig_id, ig_name, page_name = get_accounts(token)
-    print(f"接続OK: Facebookページ「{page_name}」 / Instagram @{ig_name}")
-
     rows = load_schedule()
     posted = json.load(open(POSTED, encoding="utf-8")) if os.path.exists(POSTED) else {}
 
@@ -166,6 +159,16 @@ def main():
     print(f"今回投稿するもの: {len(due)}件 / これからの予定: {len(upcoming)}件")
     for r in upcoming[:3]:
         print(f'  次: {r["datetime"]} {r["type"]} {r["media"]}')
+
+    if mode == "post" and not due:
+        print("今は投稿するものがないので終了します")
+        return
+
+    token = os.environ.get("META_TOKEN", "").strip()
+    if not token:
+        sys.exit("META_TOKEN が設定されていません（GitHub の Settings → Secrets に保存してください）")
+    page_token, ig_id, ig_name, page_name = get_accounts(token)
+    print(f"接続OK: Facebookページ「{page_name}」 / Instagram @{ig_name}")
 
     if mode == "check":
         missing = [r["media"] for r in rows if not os.path.exists(os.path.join(ROOT, "media", r["media"]))]
