@@ -1,0 +1,45 @@
+name: auto-post
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # 15分ごとに予定表をチェック
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "post = 投稿 / check = 接続確認だけ"
+        default: "check"
+        type: choice
+        options: [check, post]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-post
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 投稿
+        env:
+          META_TOKEN: ${{ secrets.META_TOKEN }}
+          MODE: ${{ github.event.inputs.mode || 'post' }}
+        run: python post.py
+      - name: 投稿済みの記録を保存
+        if: always()
+        run: |
+          if ! git diff --quiet posted.json; then
+            git config user.name "mondo-auto-post"
+            git config user.email "actions@users.noreply.github.com"
+            git add posted.json
+            git commit -m "投稿済みを記録"
+            git pull --rebase
+            git push
+          fi
