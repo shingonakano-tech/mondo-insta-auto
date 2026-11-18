@@ -7,7 +7,7 @@ Instagram（と Facebook ページ）に投稿する。投稿済みは posted.js
 
 環境変数
   META_TOKEN  : システムユーザーのアクセストークン（GitHub Secrets に保存）
-  MODE        : "post"（既定）/ "check"（接続確認だけ・投稿しない）
+  MODE        : "post"（既定）/ "check"（接続確認だけ）/ "rehearsal"（次のフィードとストーリーを下書きまで作って確認・公開しない）
 """
 import csv
 import json
@@ -169,6 +169,23 @@ def main():
         sys.exit("META_TOKEN が設定されていません（GitHub の Settings → Secrets に保存してください）")
     page_token, ig_id, ig_name, page_name = get_accounts(token)
     print(f"接続OK: Facebookページ「{page_name}」 / Instagram @{ig_name}")
+
+    if mode == "rehearsal":
+        # 次のフィードとストーリーズを、Instagram の下書き（コンテナ）まで作って確認する。公開はしない。
+        for kind in ("feed", "story"):
+            r = next((x for x in upcoming if x["type"].strip() == kind), None)
+            if not r:
+                continue
+            url = f'{RAW_BASE}/media/{urllib.parse.quote(r["media"].strip())}'
+            params = {"image_url": url}
+            if kind == "story":
+                params["media_type"] = "STORIES"
+            else:
+                params["caption"] = caption_of(r)
+            c = api("POST", f"{ig_id}/media", token, **params)
+            wait_container(c["id"], token)
+            print(f"リハーサルOK（公開はしていません）: {r['datetime']} {kind} {r['media']} / キャプション{len(params.get('caption',''))}文字")
+        return
 
     if mode == "check":
         missing = [r["media"] for r in rows if not os.path.exists(os.path.join(ROOT, "media", r["media"]))]

@@ -9,7 +9,7 @@ on:
         description: "post = 投稿 / check = 接続確認だけ"
         default: "check"
         type: choice
-        options: [check, post]
+        options: [check, rehearsal, post]
 
 permissions:
   contents: write
