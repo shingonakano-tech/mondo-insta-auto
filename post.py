@@ -188,6 +188,13 @@ def main():
         return
 
     if mode == "check":
+        try:
+            info = api("GET", "debug_token", token, input_token=token).get("data", {})
+            print("鍵の権限:", ", ".join(sorted(info.get("scopes", []))))
+            exp = info.get("expires_at")
+            print("鍵の期限:", datetime.fromtimestamp(exp, JST).strftime("%Y-%m-%d") if exp else "期限なし")
+        except Exception as e:
+            print("鍵の情報を取得できませんでした:", e)
         missing = [r["media"] for r in rows if not os.path.exists(os.path.join(ROOT, "media", r["media"]))]
         if missing:
             print("⚠ 画像が見つからない予定があります:", missing)
